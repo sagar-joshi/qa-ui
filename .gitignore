@@ -1,0 +1,5 @@
+front/qa-ui/node_modules
+back/__pycache__
+back/rag_store
+back/uploads
+back/server.log
