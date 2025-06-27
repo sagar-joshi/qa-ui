@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 
-export default function QALocalLLM({useRag}) {
+export default function QALocalLLM({ useRag }) {
   const [query, setQuery] = useState("");
   const [model, setModel] = useState("llama3");
   const [loading, setLoading] = useState(false);
@@ -104,20 +104,20 @@ export default function QALocalLLM({useRag}) {
   };
 
   return (
-    <div className="flex flex-col h-full">
-      <header className="p-4 bg-slate-900 text-white">
-        <h1 className="text-2xl font-bold">Local Chat with LLM</h1>
-        <div className="mt-2">
-          <label className="mr-2 font-medium">Model:</label>
+    <div className="flex flex-col h-screen bg-slate-50 text-slate-800 font-sans">
+      {/* Header */}
+      <header className="bg-white border-b border-slate-200 px-6 py-4 flex justify-between items-center shadow-sm shrink-0">
+        <h1 className="text-xl font-semibold tracking-tight">Chat</h1>
+        <div className="flex items-center space-x-2">
+          <label htmlFor="model" className="text-sm font-medium text-slate-600">Model:</label>
           <select
-            className="bg-slate-800 text-white border border-slate-700 rounded px-2 py-1"
+            id="model"
+            className="text-sm bg-slate-100 border border-slate-300 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500"
             value={model}
             onChange={(e) => handleModelChange(e.target.value)}
           >
             {availableModels.map((m) => (
-              <option key={m} value={m}>
-                {m}
-              </option>
+              <option key={m} value={m}>{m}</option>
             ))}
             <option value="auto">Auto Select</option>
             <option value="pull">Pull from Ollama</option>
@@ -125,43 +125,43 @@ export default function QALocalLLM({useRag}) {
         </div>
       </header>
 
-      <main className="flex-1 p-4 overflow-y-auto bg-slate-100">
+      {/* Chat Messages */}
+      <main className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
         {chatHistory.map((msg, idx) => (
           <div
             key={idx}
-            className={`my-2 flex ${msg.sender === "user" ? "justify-end" : "justify-start"}`}
+            className={`flex ${msg.sender === "user" ? "justify-end" : "justify-start"}`}
           >
-            <div
-              className={`rounded-xl px-4 py-2 max-w-[80%] whitespace-pre-wrap ${
-                msg.sender === "user"
-                  ? "bg-blue-600 text-white"
-                  : "bg-white border border-slate-200 text-slate-800"
-              }`}
-            >
+            <div className={`max-w-[75%] px-4 py-3 rounded-2xl shadow-sm text-sm leading-relaxed ${
+              msg.sender === "user"
+                ? "bg-blue-600 text-white"
+                : "bg-white border border-slate-200 text-slate-800"
+            }`}>
               {msg.text}
+              {msg.sender === "bot" && msg.model && (
+                <div className="mt-1 text-xs text-slate-400 font-medium">
+                  Model: {msg.model}
+                </div>
+              )}
             </div>
-            {msg.sender === "bot" && msg.model && (
-              <div className="text-xs text-slate-500 mt-1 ml-1">
-                <strong>{msg.model}</strong>
-              </div>
-            )}
           </div>
         ))}
-        <div ref={bottomRef}></div>
+        <div ref={bottomRef} />
       </main>
 
-      <footer className="p-4 bg-white border-t border-slate-200">
-        <div className="flex gap-2">
+      {/* Footer */}
+      <footer className="bg-white px-6 py-4 border-t border-slate-200 shrink-0">
+        <div className="flex items-center gap-2">
           <input
             type="text"
-            className="flex-1 px-4 py-2 border border-slate-300 rounded-lg shadow-sm"
+            className="flex-1 px-4 py-2 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm"
             placeholder="Type your question..."
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleAsk()}
           />
           <button
-            className="px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50"
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition"
             onClick={handleAsk}
             disabled={loading}
           >
@@ -170,20 +170,21 @@ export default function QALocalLLM({useRag}) {
         </div>
       </footer>
 
+      {/* Pull Model Modal */}
       {showPullBox && (
-        <div className="absolute inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
-          <div className="bg-white p-6 rounded-lg shadow-lg w-96">
-            <h2 className="text-lg font-bold mb-2">Pull Model from Ollama</h2>
+        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl shadow-xl p-6 w-full max-w-md">
+            <h2 className="text-lg font-semibold mb-3">Pull Model from Ollama</h2>
             <input
               type="text"
               className="w-full border border-slate-300 px-3 py-2 rounded mb-3"
-              placeholder="e.g., mistral, llama3, user/custom-model"
+              placeholder="e.g. mistral, llama3, user/custom-model"
               value={pullModelName}
               onChange={(e) => setPullModelName(e.target.value)}
             />
-            <div className="flex justify-end gap-2">
+            <div className="flex justify-end space-x-2">
               <button
-                className="px-4 py-2 bg-gray-300 text-gray-800 rounded"
+                className="px-4 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300"
                 onClick={() => {
                   setShowPullBox(false);
                   setPullModelName("");
@@ -193,7 +194,7 @@ export default function QALocalLLM({useRag}) {
                 Cancel
               </button>
               <button
-                className="px-4 py-2 bg-blue-600 text-white rounded"
+                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
                 onClick={handlePullModel}
               >
                 Pull
