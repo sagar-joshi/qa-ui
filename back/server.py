@@ -10,10 +10,10 @@ from fastapi import UploadFile, File, FastAPI
 from fastapi.requests import Request
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
-from langchain.vectorstores import FAISS
-from langchain.embeddings import OllamaEmbeddings
+from langchain_community.vectorstores import FAISS
+from langchain_community.embeddings import OllamaEmbeddings
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain.document_loaders import PyPDFLoader, UnstructuredFileLoader
+from langchain_community.document_loaders import PyPDFLoader, UnstructuredFileLoader
 from auto_route_model import detect_domain 
 
 # --- Logging ---
@@ -54,7 +54,7 @@ def ensure_models_present():
       text=True,
       timeout=10
     )
-    installed = {line.split()[0] for line in result.stdout.strip().split("\n")[1:]}
+    installed = {line.split()[0].split(":")[0] for line in result.stdout.strip().split("\n")[1:]}
     missing = REQUIRED_MODELS - installed
 
     if missing:
@@ -244,8 +244,13 @@ async def qa(q: Query):
                 text=True,
                 bufsize=1
             )
-            for line in process.stdout:
-                yield line
+            try:
+                for line in iter(process.stdout.readline, ''):
+                    if line:
+                      yield line
+            finally:
+                process.stdout.close()
+                process.wait()
 
         return StreamingResponse(
             generate(),
