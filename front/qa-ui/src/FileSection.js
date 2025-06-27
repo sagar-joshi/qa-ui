@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 
 export default function FileSection({ useRag, setUseRag }) {
   const [files, setFiles] = useState([]);
   const [uploading, setUploading] = useState(false);
   const [status, setStatus] = useState("");
   const [uploadedFiles, setUploadedFiles] = useState([]);
+  const fileInputRef = useRef(null);
 
   useEffect(() => {
     fetchUploadedFiles();
@@ -49,12 +50,37 @@ export default function FileSection({ useRag, setUseRag }) {
     }
 
     setFiles([]);
+    if (fileInputRef.current) {
+    fileInputRef.current.value = "";
+  }
     setUploading(false);
   };
 
   const handleReset = () => {
     setFiles([]);
     setStatus("");
+    if (fileInputRef.current) {
+    fileInputRef.current.value = "";
+  }
+  };
+
+  const handleRemoveFile = async (filename) => {
+    try {
+      const res = await fetch(`http://localhost:8000/delete-file`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ filename }),
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        setUploadedFiles((prev) => prev.filter((f) => f !== filename));
+      } else {
+        console.error("Failed to delete:", data.error);
+      }
+    } catch (e) {
+      console.error("Delete failed:", e);
+    }
   };
 
   return (
@@ -76,6 +102,7 @@ export default function FileSection({ useRag, setUseRag }) {
           accept=".pdf,.docx,.xlsx,.txt"
           multiple
           onChange={handleFileChange}
+          ref={fileInputRef}
           className="file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
         />
 
@@ -112,9 +139,18 @@ export default function FileSection({ useRag, setUseRag }) {
         {uploadedFiles.length === 0 ? (
           <p className="text-sm text-gray-500">No files indexed yet.</p>
         ) : (
-          <ul className="list-disc list-inside space-y-1 text-sm text-gray-700">
+          <ul className="space-y-1 text-sm text-gray-700">
             {uploadedFiles.map((f, i) => (
-              <li key={i}>{f}</li>
+              <li key={i} className="flex justify-between items-center">
+                {f}
+                <button
+                  onClick={() => handleRemoveFile(f)}
+                  className="text-red-500 hover:text-red-700 text-sm ml-2"
+                  title="Remove"
+                >
+                  ×
+                </button>
+              </li>
             ))}
           </ul>
         )}
