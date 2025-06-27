@@ -77,7 +77,7 @@ export default function QALocalLLM({ useRag }) {
       const decoder = new TextDecoder("utf-8");
       let partial = "";
       const usedModel = res.headers.get("X-Model-Used") || model;
-
+      console.log(res.headers.get("X-Model-Used"))
       while (true) {
         const { value, done } = await reader.read();
         if (done) break;

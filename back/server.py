@@ -38,6 +38,7 @@ app.add_middleware(
   allow_credentials=True,
   allow_methods=["*"],
   allow_headers=["*"],
+  expose_headers=["X-Model-Used"]
 )
 
 # --- Models we expect ---
@@ -186,7 +187,7 @@ async def qa(q: Query):
 
             # Basic keyword override for code
             if any(kw in query_lower for kw in ["code", "function", "class", "def", "import", "script"]):
-                domain = "coding"
+                domain = "code"
 
             # Best-fit mapping
             model_mapping = {
@@ -201,11 +202,11 @@ async def qa(q: Query):
             logging.info(f"Mapped model: {model_to_use}")
 
         # Context enrichment with RAG if enabled
-        prompt = q.query
+        prompt_with_context = q.query
         if q.useRag and vector_store:
             docs = vector_store.similarity_search(q.query, k=4)
             context = "\n\n".join([doc.page_content for doc in docs])
-            prompt = (
+            prompt_with_context = (
                 f"Use the following context to answer accurately:\n\n{context}\n\n"
                 f"Question: {q.query}"
             )
@@ -216,21 +217,23 @@ async def qa(q: Query):
             prompt = (
                 f"You are a helpful AI coding assistant.\n"
                 f"Generate clean, documented code for the following request:\n\n"
-                f"{q.query}\n\n"
+                f"{prompt_with_context}\n\n"
                 f"Include comments and best practices."
             )
         elif model_to_use in ["mistral", "llama3"]:
             prompt = (
                 f"You are a knowledgeable assistant.\n"
                 f"Answer the following query clearly and concisely:\n\n"
-                f"{q.query}"
+                f"{prompt_with_context}"
             )
         elif model_to_use == "phi":
             prompt = (
                 f"You are a domain expert.\n"
                 f"Provide a detailed, step-by-step answer to this question:\n\n"
-                f"{q.query}"
+                f"{prompt_with_context}"
             )
+        else:
+           prompt = prompt_with_context
 
         def generate():
             logging.info(f"Running user query on model: {model_to_use}")
