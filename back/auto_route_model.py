@@ -1,6 +1,7 @@
 import subprocess
 import logging
 import json
+import requests  # <-- Added for API-based call
 
 # Configure logging
 logging.basicConfig(
@@ -37,15 +38,20 @@ Query:
     logging.info(f"Using {model_name} to get domain for the query with timeout:30")
 
     try:
-        result = subprocess.run(
-            ["ollama", "run", model_name, prompt],
-            capture_output=True,
-            text=True,
+        url = "http://localhost:11434/api/generate"
+        response = requests.post(
+            url,
+            json={
+                "model": model_name,
+                "prompt": prompt,
+                "stream": False
+            },
             timeout=30,
         )
-
-        raw_output = result.stdout.replace("\n", "").strip()
-        logging.info(f"{model_name} raw output: {raw_output}")
+        response.raise_for_status()
+        # Ollama returns the result in the "response" field in JSON
+        raw_output = response.json().get("response", "").replace("\n", "").strip()
+        logging.info(f"{model_name} API raw output: {raw_output}")
 
         try:
             parsed = json.loads(raw_output)
@@ -58,8 +64,8 @@ Query:
             logging.error("Failed to parse JSON output. Falling back to 'general'.")
             return "general"
 
-    except subprocess.TimeoutExpired:
-        logging.error("Ollama call timed out. Falling back to 'general'.")
+    except requests.Timeout:
+        logging.error("Ollama API call timed out. Falling back to 'general'.")
         return "general"
 
     except Exception as e:
