@@ -186,10 +186,12 @@ export default function QALocalLLM({ useRag }) {
           >
             <div className={`max-w-[75%] px-4 py-3 rounded-2xl shadow-sm text-sm leading-relaxed ${
               msg.sender === "user"
-                ? "bg-blue-600 text-white"
+                ? "bg-blue-600"
                 : "bg-white border border-slate-200 text-slate-800"
             }`}>
-              <ReactMarkdown className="prose max-w-none text-sm">
+              <ReactMarkdown
+                className={`prose max-w-none text-sm ${msg.sender === "user" ? "prose-invert" : ""}`}
+              >
                 {msg.text}
               </ReactMarkdown>
               {msg.sender === "bot" && msg.model && (
