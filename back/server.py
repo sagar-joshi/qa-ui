@@ -3,18 +3,20 @@
 import subprocess
 import logging
 import os, shutil
-from fastapi import FastAPI
+from fastapi import FastAPI,Body
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from fastapi import UploadFile, File, FastAPI
 from fastapi.requests import Request
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse,StreamingResponse
 from pydantic import BaseModel
 from langchain_community.vectorstores import FAISS
 from langchain_community.embeddings import OllamaEmbeddings
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_community.document_loaders import PyPDFLoader, UnstructuredFileLoader
-from auto_route_model import detect_domain 
+from auto_route_model import detect_domain
+import re
+import time
 
 # --- Logging ---
 logging.basicConfig(
@@ -140,21 +142,38 @@ async def upload_files(files: list[UploadFile] = File(...)):
 
 @app.post("/pull")
 def pull_model(req: Pull):
-  logging.info(f"Received /pull payload: {req}")
-  try:
-    result = subprocess.run(
-      ["ollama", "pull", req.model_name],
-      capture_output=True,
-      text=True,
-      timeout=300
-    )
-    if result.returncode == 0:
-      return {"success": True}
-    else:
-      return {"success": False, "error": result.stderr.strip()}
-  except Exception as e:
-    logging.error(f"/pull exception: {e}")
-    return {"success": False, "error": str(e)}
+    logging.info(f"Received /pull payload: {req.model_name}")
+    
+    def event_stream():
+        try:
+            process = subprocess.Popen(
+                ["ollama", "pull", req.model_name],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                text=True,
+                bufsize=1
+            )
+
+            for line in iter(process.stdout.readline, ''):
+                if line:
+                    logging.info(f"[PULL_PROGRESS] {line.strip()}")
+                    yield line
+                    # Optional: flush delay to mimic stream pacing (remove in prod if needed)
+                    time.sleep(0.05)
+
+            process.stdout.close()
+            return_code = process.wait()
+
+            if return_code == 0:
+                yield "100% - Pull completed successfully.\n"
+            else:
+                yield f"Error: Model pull failed with code {return_code}\n"
+
+        except Exception as e:
+            logging.error(f"Exception in /pull stream: {e}")
+            yield f"Error: {str(e)}\n"
+
+    return StreamingResponse(event_stream(), media_type="text/plain")
 
 @app.get("/models")
 def list_models():
@@ -265,3 +284,21 @@ async def qa(q: Query):
             media_type="text/plain",
             headers={"X-Model-Used": q.model}
         )
+    
+@app.post("/delete-file")
+async def delete_file(payload: dict = Body(...)):
+    filename = payload.get("filename")
+    if not filename:
+        return {"success": False, "error": "Filename not provided."}
+
+    file_path = os.path.join(UPLOAD_DIR, filename)
+    try:
+        if os.path.exists(file_path):
+            os.remove(file_path)
+            logging.info(f"Deleted file: {file_path}")
+            return {"success": True}
+        else:
+            return {"success": False, "error": "File does not exist."}
+    except Exception as e:
+        logging.error(f"Error deleting file {filename}: {e}")
+        return {"success": False, "error": str(e)}
