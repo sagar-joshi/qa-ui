@@ -10,7 +10,7 @@ logging.basicConfig(
     filemode="a"
 )
 
-ALLOWED_DOMAINS = ["legal", "science", "insurance", "math", "technology", "code"]
+ALLOWED_DOMAINS = ["legal", "science", "insurance", "math", "code"]
 
 def detect_domain(user_query: str, model_name="llama3") -> str:
     """
@@ -44,7 +44,7 @@ Query:
             timeout=30,
         )
 
-        raw_output = result.stdout.strip()
+        raw_output = result.stdout.replace("\n", "").strip()
         logging.info(f"{model_name} raw output: {raw_output}")
 
         try:

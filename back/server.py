@@ -234,22 +234,33 @@ async def qa(q: Query):
         # Prompt formatting per model
         if model_to_use == "codellama":
             prompt = (
-                f"You are a helpful AI coding assistant.\n"
-                f"Generate clean, documented code for the following request:\n\n"
-                f"{prompt_with_context}\n\n"
-                f"Include comments and best practices."
+              "You are a professional coding assistant.\n"
+              "Generate clear, production-quality code for the following request.\n"
+              "Respect the language and technology the user requests.\n"
+              "IMPORTANT:\n"
+              "- Output ONLY the code, without any markdown formatting.\n"
+              "- Do NOT include any explanations or introductions.\n"
+              "- Do NOT wrap the code in code fences.\n"
+              "- If the user did not specify a language, choose the most appropriate one.\n\n"
+              f"{prompt_with_context}"
             )
         elif model_to_use in ["mistral", "llama3"]:
             prompt = (
-                f"You are a knowledgeable assistant.\n"
-                f"Answer the following query clearly and concisely:\n\n"
-                f"{prompt_with_context}"
+            f"You are an expert assistant.\n"
+            f"Provide a clear, concise answer for the following query.\n"
+            f"If the answer is code, output ONLY the raw code without markdown.\n\n"
+            f"Query:\n"
+            f"{prompt_with_context}\n\n"
+            f"Output only the answer."
             )
         elif model_to_use == "phi":
             prompt = (
-                f"You are a domain expert.\n"
-                f"Provide a detailed, step-by-step answer to this question:\n\n"
-                f"{prompt_with_context}"
+            f"You are a domain expert.\n"
+            f"Give a detailed, step-by-step answer to the following question.\n"
+            f"If the answer includes code, output ONLY the code without markdown formatting.\n\n"
+            f"Question:\n"
+            f"{prompt_with_context}\n\n"
+            f"Output only the answer."
             )
         else:
            prompt = prompt_with_context
