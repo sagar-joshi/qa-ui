@@ -1,5 +1,7 @@
 // QALocalLLM.jsx
 import React, { useState, useEffect, useRef } from "react";
+import ReactMarkdown from "react-markdown";
+
 
 export default function QALocalLLM({ useRag }) {
   const [query, setQuery] = useState("");
@@ -187,7 +189,9 @@ export default function QALocalLLM({ useRag }) {
                 ? "bg-blue-600 text-white"
                 : "bg-white border border-slate-200 text-slate-800"
             }`}>
-              {msg.text}
+              <ReactMarkdown className="prose max-w-none text-sm">
+                {msg.text}
+              </ReactMarkdown>
               {msg.sender === "bot" && msg.model && (
                 <div className="mt-1 text-xs text-slate-400 font-medium">
                   Model: {msg.model}
