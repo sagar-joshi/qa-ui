@@ -147,8 +147,8 @@ export default function QALocalLLM({ useRag }) {
   };
 
   return (
-    <div className="flex flex-col h-screen bg-slate-50 text-slate-800 font-sans">
-      <header className="bg-white border-b border-slate-200 px-6 py-4 flex justify-between items-center shadow-sm shrink-0">
+    <div className="flex flex-col flex-1 bg-slate-50 text-slate-800 font-sans overflow-hidden">
+      <header className="sticky top-0 bg-white border-b border-slate-200 px-6 py-4 flex justify-between items-center shadow-sm z-10">
         <h1 className="text-xl font-semibold tracking-tight">Chat</h1>
         <div className="flex items-center space-x-2">
           <label htmlFor="model" className="text-sm font-medium text-slate-600">Model:</label>
@@ -176,7 +176,7 @@ export default function QALocalLLM({ useRag }) {
         </div>
       </header>
 
-      <main className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
+      <main className="flex-1 min-h-0 overflow-y-auto px-6 py-4 space-y-4">
         {chatHistory.map((msg, idx) => (
           <div
             key={idx}
@@ -199,7 +199,7 @@ export default function QALocalLLM({ useRag }) {
         <div ref={bottomRef} />
       </main>
 
-      <footer className="bg-white px-6 py-4 border-t border-slate-200 shrink-0">
+      <footer className="bg-white px-6 py-4 border-t border-slate-200 z-10">
         <div className="flex items-center gap-2">
           <input
             type="text"
