@@ -3,12 +3,10 @@
 import subprocess
 import logging
 import os, shutil
-from fastapi import FastAPI,Body
+from fastapi import FastAPI, Body, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import StreamingResponse
-from fastapi import UploadFile, File, FastAPI
+from fastapi.responses import StreamingResponse, JSONResponse
 from fastapi.requests import Request
-from fastapi.responses import JSONResponse,StreamingResponse
 from pydantic import BaseModel
 from langchain_community.vectorstores import FAISS
 from langchain_community.embeddings import OllamaEmbeddings
@@ -17,6 +15,7 @@ from langchain_community.document_loaders import PyPDFLoader, UnstructuredFileLo
 from auto_route_model import detect_domain
 import re
 import time
+import requests  # <-- Added for Ollama API calls
 
 def rebuild_vector_store():
     """
@@ -285,22 +284,34 @@ async def qa(q: Query):
         else:
            prompt = prompt_with_context
 
+        # --- PATCH: Use Ollama API for generation instead of subprocess ---
         def generate():
-            logging.info(f"Running user query on model: {model_to_use}")
-            process = subprocess.Popen(
-                ["ollama", "run", model_to_use, prompt],
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                text=True,
-                bufsize=1
-            )
+            logging.info(f"Running user query on model: {model_to_use} via Ollama API")
+            url = "http://localhost:11434/api/generate"
             try:
-                for line in iter(process.stdout.readline, ''):
+                response = requests.post(
+                    url,
+                    json={
+                        "model": model_to_use,
+                        "prompt": prompt,
+                        "stream": True
+                    },
+                    stream=True,
+                    timeout=300
+                )
+                for line in response.iter_lines(decode_unicode=True):
                     if line:
-                      yield line
-            finally:
-                process.stdout.close()
-                process.wait()
+                        try:
+                            import json
+                            data = json.loads(line)
+                            text = data.get("response", "")
+                            yield text
+                        except Exception:
+                            yield line + "\n"
+            except Exception as e:
+                logging.error(f"Exception in /qa Ollama API stream: {e}")
+                yield f"Error: {str(e)}\n"
+        # --- END PATCH ---
 
         return StreamingResponse(
             generate(),
