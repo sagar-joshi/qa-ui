@@ -18,6 +18,43 @@ from auto_route_model import detect_domain
 import re
 import time
 
+def rebuild_vector_store():
+    """
+    Rebuilds the FAISS vector store from all files in the uploads folder.
+    Updates both disk and in-memory vector_store reference.
+    """
+    global vector_store
+
+    embeddings = OllamaEmbeddings(model="nomic-embed-text")
+    new_vector_store = None
+
+    for fname in os.listdir(UPLOAD_DIR):
+        path = os.path.join(UPLOAD_DIR, fname)
+        if fname.endswith(".pdf"):
+            loader = PyPDFLoader(path)
+        else:
+            loader = UnstructuredFileLoader(path)
+
+        docs = loader.load()
+        splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=100)
+        chunks = splitter.split_documents(docs)
+
+        if new_vector_store is None:
+            new_vector_store = FAISS.from_documents(chunks, embeddings)
+        else:
+            new_vector_store.add_documents(chunks)
+
+    # Save or clear the vector store
+    if new_vector_store:
+        new_vector_store.save_local(VECTOR_PATH)
+        vector_store = new_vector_store
+        logging.info("✅ Vector store rebuilt and saved successfully.")
+    else:
+        if os.path.exists(VECTOR_PATH):
+            shutil.rmtree(VECTOR_PATH)
+        vector_store = None
+        logging.info("⚠️ No files left — vector store cleared.")
+
 # --- Logging ---
 logging.basicConfig(
   level=logging.INFO,
@@ -113,32 +150,15 @@ def list_uploaded_files():
 
 @app.post("/upload")
 async def upload_files(files: list[UploadFile] = File(...)):
-  global vector_store
-  saved_files = []
-  for file in files:
-    path = os.path.join(UPLOAD_DIR, file.filename)
-    with open(path, "wb") as f:
-      shutil.copyfileobj(file.file, f)
-    saved_files.append(file.filename)
+    saved_files = []
+    for file in files:
+        path = os.path.join(UPLOAD_DIR, file.filename)
+        with open(path, "wb") as f:
+            shutil.copyfileobj(file.file, f)
+        saved_files.append(file.filename)
 
-    if file.filename.endswith(".pdf"):
-      loader = PyPDFLoader(path)
-    else:
-      loader = UnstructuredFileLoader(path)
-
-    docs = loader.load()
-    splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=100)
-    chunks = splitter.split_documents(docs)
-
-    embeddings = OllamaEmbeddings(model="nomic-embed-text")
-
-    if vector_store is None:
-      vector_store = FAISS.from_documents(chunks, embeddings)
-    else:
-      vector_store.add_documents(chunks)
-
-  vector_store.save_local(VECTOR_PATH)
-  return {"success": True, "files": saved_files}
+    rebuild_vector_store()
+    return {"success": True, "files": saved_files}
 
 @app.post("/pull")
 def pull_model(req: Pull):
@@ -295,7 +315,7 @@ async def qa(q: Query):
             media_type="text/plain",
             headers={"X-Model-Used": q.model}
         )
-    
+
 @app.post("/delete-file")
 async def delete_file(payload: dict = Body(...)):
     filename = payload.get("filename")
@@ -306,10 +326,14 @@ async def delete_file(payload: dict = Body(...)):
     try:
         if os.path.exists(file_path):
             os.remove(file_path)
-            logging.info(f"Deleted file: {file_path}")
-            return {"success": True}
+            logging.info(f"🗑️ Deleted file: {file_path}")
         else:
             return {"success": False, "error": "File does not exist."}
+
+        rebuild_vector_store()
+
+        return {"success": True}
+
     except Exception as e:
-        logging.error(f"Error deleting file {filename}: {e}")
+        logging.error(f"❌ Error deleting file {filename} and rebuilding vector store: {e}")
         return {"success": False, "error": str(e)}
