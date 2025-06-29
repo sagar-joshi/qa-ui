@@ -1,0 +1,81 @@
+
+LLM Model Comparison for Domain-Specific Use Cases
+===================================================
+
+1. LLaMA 3 (Meta)
+-----------------
+- Best Domains: General, Legal, Insurance, Programming (light)
+- Strengths: Strong reasoning, long context (8K–128K), fluent output
+- Weaknesses: Occasional hallucination, not the most efficient for small devices
+- Resource Usage: Moderate (runs fine on CPU with quantization)
+- Summary: Best all-rounder for general use and reasoning tasks
+
+2. CodeLLaMA
+------------
+- Best Domains: Programming (Python, JS, Bash), Light Math
+- Strengths: Syntax precision, good code generation, understanding of logic
+- Weaknesses: Can hallucinate APIs or return incorrect output in long completions
+- Resource Usage: High (7B–34B, GPU recommended)
+- Summary: Best for developers and programming tasks
+
+3. Mistral
+----------
+- Best Domains: General, Math, Legal (basic), Insurance
+- Strengths: Logical, very efficient, compact, fast inference
+- Weaknesses: Hallucinates more than LLaMA in abstract tasks
+- Resource Usage: Low to Moderate (7B fits most systems)
+- Summary: Compact, powerful choice for general use
+
+4. Gemma 3 (Google)
+-------------------
+- Best Domains: General, Science (basic), Chatbots
+- Strengths: Dialogue flow, summarization, safety alignment
+- Weaknesses: May skip factual consistency, weaker at deep logic
+- Resource Usage: Very low (2B/7B), good CPU support
+- Summary: Best for lightweight systems and safe conversations
+
+5. Phi (Microsoft)
+------------------
+- Best Domains: Education, Logic/Math, Reasoning
+- Strengths: Strong math reasoning, logic, textbook-style QA
+- Weaknesses: Hallucinates on open-ended or broad factual queries
+- Resource Usage: Very low (1.3B–3.8B)
+- Summary: Great for low-resource devices and math-heavy tasks
+
+6. DeepSeek
+-----------
+- Best Domains: Programming, Math, Science
+- Strengths: Excellent at math, code, scientific reasoning
+- Weaknesses: Resource-heavy, especially in larger variants
+- Resource Usage: High (7B–67B, best on GPU)
+- Summary: Ideal for code + math + scientific content
+
+7. Qwen (Alibaba)
+-----------------
+- Best Domains: General, Legal (basic), Insurance, Multilingual
+- Strengths: Fluent, multilingual, handles long-context
+- Weaknesses: Hallucinates more in abstract/open-ended prompts
+- Resource Usage: Moderate to High
+- Summary: Great for multilingual apps and context-heavy use
+
+===================================================
+
+Domain-Specific Recommendations
+===============================
+
+- Legal:        LLaMA 3, Mistral, Qwen
+- Insurance:    LLaMA 3, Gemma 3, Qwen
+- General:      LLaMA 3, Mistral, Qwen
+- Science:      DeepSeek, Phi, LLaMA 3
+- Math:         Phi, DeepSeek, Mistral
+- Programming:  CodeLLaMA, DeepSeek, LLaMA 3
+
+Other Comparisons
+=================
+
+- Lowest Hallucination: LLaMA 3, DeepSeek, Phi
+- Best Reasoning: Phi, LLaMA 3, DeepSeek
+- Best Memory / Context: Qwen, LLaMA 3
+- Lowest Resource Usage: Phi, Mistral, Gemma 3
+- Best for CPU: Phi, Mistral, Gemma 3
+- Best Multilingual: Qwen, LLaMA 3

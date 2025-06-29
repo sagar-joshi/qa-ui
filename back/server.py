@@ -17,6 +17,8 @@ import re
 import time
 import requests  # <-- Added for Ollama API calls
 
+AVAILABLE_MODELS = ["llama3:latest", "codellama:latest", "mistral:latest", "gemma3:1b", "phi:latest", "deepseek-r1:1.5b", "qwen:0.5b"]
+
 def rebuild_vector_store():
     """
     Rebuilds the FAISS vector store from all files in the uploads folder.
@@ -175,7 +177,6 @@ def pull_model(req: Pull):
 
             for line in iter(process.stdout.readline, ''):
                 if line:
-                    logging.info(f"[PULL_PROGRESS] {line.strip()}")
                     yield line
                     # Optional: flush delay to mimic stream pacing (remove in prod if needed)
                     time.sleep(0.05)
@@ -220,24 +221,13 @@ async def qa(q: Query):
 
         # Auto routing
         if q.model == "auto":
-            domain = detect_domain(q.query)
-            logging.info(f"detect_domain model output: {domain}")
+            res = detect_domain(q.query, useRag=True, available_models=AVAILABLE_MODELS)
+            logging.info(f"detect_domain model output: model: {res['model']}")
 
-            # Basic keyword override for code
-            if any(kw in query_lower for kw in ["code", "function", "class", "def", "import", "script"]):
-                domain = "code"
-
-            # Best-fit mapping
-            model_mapping = {
-                "legal": "mistral",
-                "science": "phi",
-                "insurance": "mistral",
-                "math": "phi",
-                "code": "codellama",
-                "general": "llama3"
-            }
-            model_to_use = model_mapping.get(domain, "llama3")
-            logging.info(f"Mapped model: {model_to_use}")
+            model_to_use = res["model"]
+            if model_to_use not in AVAILABLE_MODELS:
+               model_to_use = 'gemma3:1b'
+            logging.info(f"model_to_use: {model_to_use}")
 
         # Context enrichment with RAG if enabled
         prompt_with_context = q.query
@@ -251,7 +241,7 @@ async def qa(q: Query):
             logging.info(f"RAG context included in prompt. Context preview: {context[:300]}")
 
         # Prompt formatting per model
-        if model_to_use == "codellama":
+        if model_to_use == "codellama:latest":
             prompt = (
               "You are a professional coding assistant.\n"
               "Generate clear, production-quality code for the following request.\n"
@@ -263,7 +253,7 @@ async def qa(q: Query):
               "- If the user did not specify a language, choose the most appropriate one.\n\n"
               f"{prompt_with_context}"
             )
-        elif model_to_use in ["mistral", "llama3"]:
+        elif model_to_use in ['mistral:latest']:
             prompt = (
             f"You are an expert assistant.\n"
             f"Provide a clear, concise answer for the following query.\n"
@@ -272,7 +262,7 @@ async def qa(q: Query):
             f"{prompt_with_context}\n\n"
             f"Output only the answer."
             )
-        elif model_to_use == "phi":
+        elif model_to_use == "phi:latest":
             prompt = (
             f"You are a domain expert.\n"
             f"Give a detailed, step-by-step answer to the following question.\n"
@@ -299,6 +289,7 @@ async def qa(q: Query):
                     stream=True,
                     timeout=300
                 )
+                logging.info("Ollama API call made, starting to stream lines...")
                 for line in response.iter_lines(decode_unicode=True):
                     if line:
                         try:
